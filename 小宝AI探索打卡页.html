@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乖乖AI探索实验 - 打卡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background: #fef3c7; }
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .day-cell {
+            transition: all 0.3s ease;
+        }
+        .day-cell.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        .confetti {
+            position: fixed;
+            width: 10px; height: 10px;
+            animation: confetti-fall 3s ease-out forwards;
+            z-index: 9999;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        .progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-click-anim {
+            animation: btn-pop 0.3s ease;
+        }
+        @keyframes btn-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+        .money-float {
+            position: absolute;
+            color: #f59e0b;
+            font-weight: 900;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: float-up 1s ease-out forwards;
+        }
+        @keyframes float-up {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+        }
+        .shake { animation: shake 0.5s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .modal-enter {
+            animation: modal-in 0.4s ease-out;
+        }
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        input:focus, textarea:focus { outline: none; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md mx-auto">
+        <!-- 顶部标题 -->
+        <div class="text-center mb-6">
+            <div class="inline-block glass rounded-full px-5 py-2 mb-3">
+                <span class="text-amber-700 font-bold text-sm">🧪 AI探索实验</span>
+            </div>
+            <h1 class="text-3xl font-black text-amber-900 tracking-tight">乖乖的成长打卡</h1>
+            <p class="text-amber-600/80 text-sm mt-1">每天一小步，满月大收获 ✨</p>
+        </div>
+
+        <!-- 主卡片 -->
+        <div class="glass rounded-3xl p-6 shadow-xl shadow-amber-200/50 mb-4">
+            <!-- 统计区 -->
+            <div class="flex justify-between items-center mb-6">
+                <div class="text-center flex-1">
+                    <div class="text-3xl font-black text-amber-600" id="dayCount">0</div>
+                    <div class="text-xs text-amber-500/80 mt-1">已打卡天数</div>
+                </div>
+                <div class="w-px h-12 bg-amber-200"></div>
+                <div class="text-center flex-1">
+                    <div class="text-3xl font-black text-amber-600" id="moneyCount">¥0</div>
+                    <div class="text-xs text-amber-500/80 mt-1">已累积底薪</div>
+                </div>
+                <div class="w-px h-12 bg-amber-200"></div>
+                <div class="text-center flex-1">
+                    <div class="text-3xl font-black text-amber-600" id="remainCount">30</div>
+                    <div class="text-xs text-amber-500/80 mt-1">剩余天数</div>
+                </div>
+            </div>
+
+            <!-- 进度条 -->
+            <div class="mb-6">
+                <div class="flex justify-between text-xs text-amber-600 mb-2">
+                    <span>实验进度</span>
+                    <span id="percentText">0%</span>
+                </div>
+                <div class="h-4 bg-amber-100 rounded-full overflow-hidden">
+                    <div id="progressBar" class="progress-bar h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 今日打卡按钮 -->
+            <div class="relative mb-6">
+                <button id="checkInBtn" onclick="doCheckIn()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <span id="btnIcon">🌅</span>
+                    <span id="btnText">下班打卡</span>
+                </button>
+                <div id="btnSub" class="text-center text-xs text-amber-500/60 mt-2">今天也要加油鸭！</div>
+            </div>
+
+            <!-- 今日一句话 -->
+            <div class="glass rounded-2xl p-4 bg-white/60">
+                <label class="text-xs font-bold text-amber-700 mb-2 block">📝 今天的一句话</label>
+                <textarea id="todayNote" rows="2" placeholder="今天发现了什么？有什么想吐槽的？随便写..." 
+                    class="w-full bg-white/80 rounded-xl p-3 text-sm text-amber-900 placeholder-amber-300/80 resize-none border border-amber-100 focus:border-amber-400 transition-colors"></textarea>
+                <button onclick="saveNote()" class="mt-2 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg transition-colors font-medium">保存记录</button>
+            </div>
+        </div>
+
+        <!-- 30天日历格子 -->
+        <div class="glass rounded-3xl p-5 shadow-lg shadow-amber-200/30 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-amber-800 text-sm">📅 30天探索地图</h3>
+                <span class="text-xs text-amber-500">点亮每一天</span>
+            </div>
+            <div id="calendarGrid" class="grid grid-cols-6 gap-2">
+                <!-- JS生成 -->
+            </div>
+        </div>
+
+        <!-- 工资说明 -->
+        <div class="glass rounded-2xl p-4 text-center mb-4">
+            <div class="text-xs text-amber-600/80 mb-1">🎯 满月目标</div>
+            <div class="text-lg font-black text-amber-800">底薪 ¥2000 + 探索奖金 ¥500</div>
+            <div class="text-xs text-amber-500/70 mt-1">30天后，带着成长来领工资 💰</div>
+        </div>
+
+        <!-- 历史记录折叠 -->
+        <details class="glass rounded-2xl overflow-hidden mb-4">
+            <summary class="p-4 text-sm font-bold text-amber-700 cursor-pointer hover:bg-amber-50/50 transition-colors">
+                📖 查看我的探索日记
+            </summary>
+            <div id="historyList" class="p-4 pt-0 max-h-64 overflow-y-auto text-sm space-y-2">
+                <div class="text-amber-400/60 text-center py-4">还没有记录，开始第一天吧！</div>
+            </div>
+        </details>
+
+        <!-- 重置按钮 -->
+        <div class="text-center mb-8">
+            <button onclick="resetAll()" class="text-xs text-amber-400/60 hover:text-amber-500 transition-colors underline">
+                🔄 重置实验数据（从头开始）
+            </button>
+        </div>
+    </div>
+
+    <!-- 满30天庆祝弹窗 -->
+    <div id="celebrateModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center modal-enter shadow-2xl">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-2xl font-black text-amber-800 mb-2">实验完成！</h2>
+            <p class="text-amber-600 mb-4">乖乖，你完成了30天AI探索！<br>准备好领工资了吗？</p>
+            <div class="bg-amber-50 rounded-2xl p-4 mb-6">
+                <div class="text-3xl font-black text-amber-600">¥2500</div>
+                <div class="text-xs text-amber-500">底薪 ¥2000 + 探索奖金 ¥500</div>
+            </div>
+            <button onclick="closeModal()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors">
+                去找哥哥领工资！
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const TOTAL_DAYS = 30;
+        const BASE_SALARY = 2000;
+        const DAILY_BASE = Math.floor(BASE_SALARY / TOTAL_DAYS);
+        const START_DATE = '2026-06-24'; // 第一天（昨天）
+
+        function getData() {
+            const raw = localStorage.getItem('guai_guai_exp_2026');
+            if (raw) return JSON.parse(raw);
+            // 初始状态：第一天（昨天）已打卡
+            return { 
+                checkedDates: { [START_DATE]: true }, 
+                notes: {},
+                celebrated: false
+            };
+        }
+
+        function saveData(data) {
+            localStorage.setItem('guai_guai_exp_2026', JSON.stringify(data));
+        }
+
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function getDayLabel(index) {
+            return `Day ${index + 1}`;
+        }
+
+        function render() {
+            const data = getData();
+            const today = getTodayStr();
+            const checkedList = Object.keys(data.checkedDates).sort();
+            const count = checkedList.length;
+            const percent = Math.round((count / TOTAL_DAYS) * 100);
+            const earned = count * DAILY_BASE;
+
+            // 更新数字
+            document.getElementById('dayCount').textContent = count;
+            document.getElementById('moneyCount').textContent = `¥${earned}`;
+            document.getElementById('remainCount').textContent = Math.max(0, TOTAL_DAYS - count);
+            document.getElementById('percentText').textContent = `${percent}%`;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+
+            // 按钮状态
+            const btn = document.getElementById('checkInBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnSub = document.getElementById('btnSub');
+
+            if (data.checkedDates[today]) {
+                btn.classList.remove('from-amber-500', 'to-orange-500');
+                btn.classList.add('from-emerald-400', 'to-teal-500', 'cursor-default');
+                btnText.textContent = '今日已打卡 ✓';
+                btnIcon.textContent = '🌙';
+                btnSub.textContent = '明天见，好好休息！';
+                btn.disabled = true;
+            } else {
+                btn.classList.add('from-amber-500', 'to-orange-500');
+                btn.classList.remove('from-emerald-400', 'to-teal-500', 'cursor-default');
+                btnText.textContent = '下班打卡';
+                btnIcon.textContent = '🌅';
+                btnSub.textContent = count === 1 ? '昨天已完成，今天是第二天！' : '今天也要加油鸭！';
+                btn.disabled = false;
+            }
+
+            // 今日记录回显
+            if (data.notes[today]) {
+                document.getElementById('todayNote').value = data.notes[today];
+            } else {
+                document.getElementById('todayNote').value = '';
+            }
+
+            // 日历格子
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < TOTAL_DAYS; i++) {
+                const isChecked = i < count;
+                const cell = document.createElement('div');
+                cell.className = `day-cell rounded-xl h-10 flex items-center justify-center text-xs font-bold cursor-default ${isChecked ? 'active' : 'bg-white/50 text-amber-300'}`;
+                cell.textContent = i + 1;
+                if (isChecked) cell.title = getDayLabel(i) + ' 已打卡';
+                grid.appendChild(cell);
+            }
+
+            // 历史记录
+            const historyList = document.getElementById('historyList');
+            if (checkedList.length === 0) {
+                historyList.innerHTML = '<div class="text-amber-400/60 text-center py-4">还没有记录，开始第一天吧！</div>';
+            } else {
+                historyList.innerHTML = checkedList.slice().reverse().map(date => {
+                    const note = data.notes[date] || '';
+                    return `<div class="bg-white/60 rounded-xl p-3 border border-amber-100">
+                        <div class="text-xs text-amber-500 font-bold mb-1">${date}</div>
+                        <div class="text-amber-800">${note ? note : '<span class="text-amber-300">今天没有写记录</span>'}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            // 满30天检测
+            if (count >= TOTAL_DAYS && !data.celebrated) {
+                setTimeout(() => showCelebrate(), 500);
+            }
+        }
+
+        function doCheckIn() {
+            const data = getData();
+            const today = getTodayStr();
+
+            if (data.checkedDates[today]) return;
+
+            data.checkedDates[today] = true;
+            saveData(data);
+
+            // 按钮动画
+            const btn = document.getElementById('checkInBtn');
+            btn.classList.add('btn-click-anim');
+            setTimeout(() => btn.classList.remove('btn-click-anim'), 300);
+
+            // 飘钱动画
+            const rect = btn.getBoundingClientRect();
+            const float = document.createElement('div');
+            float.className = 'money-float';
+            float.textContent = `+¥${DAILY_BASE}`;
+            float.style.left = (rect.left + rect.width/2 - 20) + 'px';
+            float.style.top = (rect.top) + 'px';
+            document.body.appendChild(float);
+            setTimeout(() => float.remove(), 1000);
+
+            // 如果满30天
+            const count = Object.keys(data.checkedDates).length;
+            if (count >= TOTAL_DAYS) {
+                createConfetti();
+            }
+
+            render();
+        }
+
+        function saveNote() {
+            const data = getData();
+            const today = getTodayStr();
+            const note = document.getElementById('todayNote').value.trim();
+            data.notes[today] = note;
+            saveData(data);
+
+            const btn = event.target;
+            const original = btn.textContent;
+            btn.textContent = '已保存 ✓';
+            btn.classList.add('bg-emerald-100', 'text-emerald-700');
+            setTimeout(() => {
+                btn.textContent = original;
+                btn.classList.remove('bg-emerald-100', 'text-emerald-700');
+            }, 1500);
+
+            render();
+        }
+
+        function createConfetti() {
+            const colors = ['#f59e0b', '#fbbf24', '#f97316', '#84cc16', '#06b6d4', '#ec4899'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const conf = document.createElement('div');
+                    conf.className = 'confetti';
+                    conf.style.left = Math.random() * 100 + 'vw';
+                    conf.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                    conf.style.width = (Math.random() * 8 + 6) + 'px';
+                    conf.style.height = (Math.random() * 8 + 6) + 'px';
+                    document.body.appendChild(conf);
+                    setTimeout(() => conf.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        function showCelebrate() {
+            const data = getData();
+            data.celebrated = true;
+            saveData(data);
+            document.getElementById('celebrateModal').classList.remove('hidden');
+            document.getElementById('celebrateModal').classList.add('flex');
+            createConfetti();
+        }
+
+        function closeModal() {
+            document.getElementById('celebrateModal').classList.add('hidden');
+            document.getElementById('celebrateModal').classList.remove('flex');
+        }
+
+        function resetAll() {
+            if (confirm('确定要重置吗？所有打卡记录和笔记都会清空，回到Day 1状态。')) {
+                localStorage.removeItem('guai_guai_exp_2026');
+                location.reload();
+            }
+        }
+
+        // 初始化
+        render();
+    </script>
+</body>
+</html>
