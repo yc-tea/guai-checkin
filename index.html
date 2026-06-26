@@ -2,55 +2,40 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>乖乖AI探索实验 - 打卡</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans SC', sans-serif; background: #fef3c7; }
+        body { font-family: 'Noto Sans SC', sans-serif; background: #fef3c7; -webkit-tap-highlight-color: transparent; }
         .glass {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.6);
         }
         .day-cell {
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
         }
+        .day-cell:active { transform: scale(0.92); }
         .day-cell.active {
             background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
             color: white;
-            transform: scale(1.1);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
         }
-        .pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        .day-cell.selected {
+            ring: 3px solid #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.5);
+            transform: scale(1.15);
+            z-index: 10;
         }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(245, 158, 11, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        .day-cell.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
-        .confetti {
-            position: fixed;
-            width: 10px; height: 10px;
-            animation: confetti-fall 3s ease-out forwards;
-            z-index: 9999;
-        }
-        @keyframes confetti-fall {
-            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-        .progress-bar {
-            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-click-anim {
-            animation: btn-pop 0.3s ease;
-        }
-        @keyframes btn-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
-        }
+        .day-cell.locked:active { transform: scale(1); }
+        .progress-bar { transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .money-float {
             position: absolute;
             color: #f59e0b;
@@ -58,97 +43,114 @@
             font-size: 1.5rem;
             pointer-events: none;
             animation: float-up 1s ease-out forwards;
+            z-index: 100;
         }
         @keyframes float-up {
             0% { opacity: 1; transform: translateY(0) scale(1); }
             100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
         }
-        .shake { animation: shake 0.5s ease-in-out; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        .modal-enter {
-            animation: modal-in 0.4s ease-out;
-        }
+        .modal-enter { animation: modal-in 0.3s ease-out; }
         @keyframes modal-in {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
+        .confetti {
+            position: fixed; width: 8px; height: 8px;
+            animation: confetti-fall 3s ease-out forwards;
+            z-index: 9999; pointer-events: none;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
         input:focus, textarea:focus { outline: none; }
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.75); color: white; padding: 12px 24px;
+            border-radius: 12px; font-size: 14px; z-index: 9999;
+            animation: fade-in-out 2s ease forwards; pointer-events: none;
+        }
+        @keyframes fade-in-out {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-md mx-auto">
-        <!-- 顶部标题 -->
-        <div class="text-center mb-6">
-            <div class="inline-block glass rounded-full px-5 py-2 mb-3">
-                <span class="text-amber-700 font-bold text-sm">🧪 AI探索实验</span>
+        <!-- 顶部 -->
+        <div class="text-center mb-5">
+            <div class="inline-block glass rounded-full px-4 py-1.5 mb-2">
+                <span class="text-amber-700 font-bold text-xs">🧪 AI探索实验</span>
             </div>
-            <h1 class="text-3xl font-black text-amber-900 tracking-tight">乖乖的成长打卡</h1>
-            <p class="text-amber-600/80 text-sm mt-1">每天一小步，满月大收获 ✨</p>
+            <h1 class="text-2xl font-black text-amber-900 tracking-tight">乖乖的成长打卡</h1>
+            <p class="text-amber-600/70 text-xs mt-1">点击日历任意一天，随时打卡 ✨</p>
         </div>
 
-        <!-- 主卡片 -->
-        <div class="glass rounded-3xl p-6 shadow-xl shadow-amber-200/50 mb-4">
-            <!-- 统计区 -->
-            <div class="flex justify-between items-center mb-6">
+        <!-- 统计卡片 -->
+        <div class="glass rounded-3xl p-5 shadow-xl shadow-amber-200/50 mb-4">
+            <div class="flex justify-between items-center mb-5">
                 <div class="text-center flex-1">
-                    <div class="text-3xl font-black text-amber-600" id="dayCount">0</div>
-                    <div class="text-xs text-amber-500/80 mt-1">已打卡天数</div>
+                    <div class="text-2xl font-black text-amber-600" id="dayCount">0</div>
+                    <div class="text-xs text-amber-500/70 mt-1">已打卡</div>
                 </div>
-                <div class="w-px h-12 bg-amber-200"></div>
+                <div class="w-px h-10 bg-amber-200"></div>
                 <div class="text-center flex-1">
-                    <div class="text-3xl font-black text-amber-600" id="moneyCount">¥0</div>
-                    <div class="text-xs text-amber-500/80 mt-1">已累积底薪</div>
+                    <div class="text-2xl font-black text-amber-600" id="moneyCount">¥0</div>
+                    <div class="text-xs text-amber-500/70 mt-1">已累积</div>
                 </div>
-                <div class="w-px h-12 bg-amber-200"></div>
+                <div class="w-px h-10 bg-amber-200"></div>
                 <div class="text-center flex-1">
-                    <div class="text-3xl font-black text-amber-600" id="remainCount">30</div>
-                    <div class="text-xs text-amber-500/80 mt-1">剩余天数</div>
+                    <div class="text-2xl font-black text-amber-600" id="remainCount">30</div>
+                    <div class="text-xs text-amber-500/70 mt-1">剩余</div>
                 </div>
             </div>
-
-            <!-- 进度条 -->
-            <div class="mb-6">
-                <div class="flex justify-between text-xs text-amber-600 mb-2">
+            <div class="mb-4">
+                <div class="flex justify-between text-xs text-amber-600 mb-1.5">
                     <span>实验进度</span>
                     <span id="percentText">0%</span>
                 </div>
-                <div class="h-4 bg-amber-100 rounded-full overflow-hidden">
+                <div class="h-3 bg-amber-100 rounded-full overflow-hidden">
                     <div id="progressBar" class="progress-bar h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style="width: 0%"></div>
                 </div>
             </div>
-
-            <!-- 今日打卡按钮 -->
-            <div class="relative mb-6">
-                <button id="checkInBtn" onclick="doCheckIn()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 transition-all active:scale-95 flex items-center justify-center gap-2">
+            <!-- 选中日期显示 -->
+            <div class="text-center mb-3">
+                <div class="inline-block bg-amber-50 rounded-full px-4 py-1.5">
+                    <span class="text-sm font-bold text-amber-700">📅 选中：</span>
+                    <span id="selectedDateDisplay" class="text-sm font-bold text-amber-900">Day 2</span>
+                </div>
+            </div>
+            <!-- 打卡按钮 -->
+            <div class="relative">
+                <button id="checkInBtn" onclick="doCheckIn()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg shadow-lg shadow-amber-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2">
                     <span id="btnIcon">🌅</span>
                     <span id="btnText">下班打卡</span>
                 </button>
-                <div id="btnSub" class="text-center text-xs text-amber-500/60 mt-2">今天也要加油鸭！</div>
-            </div>
-
-            <!-- 今日一句话 -->
-            <div class="glass rounded-2xl p-4 bg-white/60">
-                <label class="text-xs font-bold text-amber-700 mb-2 block">📝 今天的一句话</label>
-                <textarea id="todayNote" rows="2" placeholder="今天发现了什么？有什么想吐槽的？随便写..." 
-                    class="w-full bg-white/80 rounded-xl p-3 text-sm text-amber-900 placeholder-amber-300/80 resize-none border border-amber-100 focus:border-amber-400 transition-colors"></textarea>
-                <button onclick="saveNote()" class="mt-2 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg transition-colors font-medium">保存记录</button>
+                <div id="btnSub" class="text-center text-xs text-amber-500/60 mt-2">点击日历选择日期，随时补打卡</div>
             </div>
         </div>
 
-        <!-- 30天日历格子 -->
+        <!-- 日历 -->
         <div class="glass rounded-3xl p-5 shadow-lg shadow-amber-200/30 mb-4">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-bold text-amber-800 text-sm">📅 30天探索地图</h3>
-                <span class="text-xs text-amber-500">点亮每一天</span>
+                <span class="text-xs text-amber-500">点击任意日期打卡</span>
             </div>
-            <div id="calendarGrid" class="grid grid-cols-6 gap-2">
+            <div id="calendarGrid" class="grid grid-cols-6 gap-2.5">
                 <!-- JS生成 -->
             </div>
+        </div>
+
+        <!-- 今日一句话 -->
+        <div class="glass rounded-2xl p-4 bg-white/60 mb-4">
+            <label class="text-xs font-bold text-amber-700 mb-2 block">📝 <span id="noteLabel">今天</span>的一句话</label>
+            <textarea id="todayNote" rows="2" placeholder="今天发现了什么？有什么想吐槽的？随便写..." 
+                class="w-full bg-white/80 rounded-xl p-3 text-sm text-amber-900 placeholder-amber-300/80 resize-none border border-amber-100 focus:border-amber-400 transition-colors"></textarea>
+            <button onclick="saveNote()" class="mt-2 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg transition-colors font-medium">保存记录</button>
         </div>
 
         <!-- 工资说明 -->
@@ -158,7 +160,17 @@
             <div class="text-xs text-amber-500/70 mt-1">30天后，带着成长来领工资 💰</div>
         </div>
 
-        <!-- 历史记录折叠 -->
+        <!-- 数据备份 -->
+        <div class="glass rounded-2xl p-4 mb-4">
+            <h3 class="text-xs font-bold text-amber-700 mb-2">💾 数据备份（防止丢失）</h3>
+            <div class="flex gap-2 mb-2">
+                <button onclick="exportData()" class="flex-1 text-xs bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 rounded-lg transition-colors font-medium">📤 导出打卡数据</button>
+                <button onclick="showImport()" class="flex-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg transition-colors font-medium">📥 导入/恢复数据</button>
+            </div>
+            <p class="text-xs text-amber-400/70">建议每周导出一次，复制保存到微信收藏或备忘录</p>
+        </div>
+
+        <!-- 历史记录 -->
         <details class="glass rounded-2xl overflow-hidden mb-4">
             <summary class="p-4 text-sm font-bold text-amber-700 cursor-pointer hover:bg-amber-50/50 transition-colors">
                 📖 查看我的探索日记
@@ -168,11 +180,24 @@
             </div>
         </details>
 
-        <!-- 重置按钮 -->
+        <!-- 重置 -->
         <div class="text-center mb-8">
-            <button onclick="resetAll()" class="text-xs text-amber-400/60 hover:text-amber-500 transition-colors underline">
+            <button onclick="resetAll()" class="text-xs text-amber-400/50 hover:text-amber-500 transition-colors underline">
                 🔄 重置实验数据（从头开始）
             </button>
+        </div>
+    </div>
+
+    <!-- 导入数据弹窗 -->
+    <div id="importModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full modal-enter shadow-2xl">
+            <h3 class="text-lg font-bold text-amber-800 mb-3">📥 导入打卡数据</h3>
+            <p class="text-xs text-amber-600 mb-3">粘贴之前导出的数据代码，恢复打卡记录：</p>
+            <textarea id="importInput" rows="4" placeholder="粘贴导出的数据..." class="w-full bg-amber-50 rounded-xl p-3 text-xs text-amber-900 border border-amber-200 resize-none mb-3"></textarea>
+            <div class="flex gap-2">
+                <button onclick="doImport()" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm transition-colors">确认导入</button>
+                <button onclick="closeImport()" class="flex-1 py-2.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl font-bold text-sm transition-colors">取消</button>
+            </div>
         </div>
     </div>
 
@@ -196,12 +221,34 @@
         const TOTAL_DAYS = 30;
         const BASE_SALARY = 2000;
         const DAILY_BASE = Math.floor(BASE_SALARY / TOTAL_DAYS);
-        const START_DATE = '2026-06-24'; // 第一天（昨天）
+        const START_DATE = '2026-06-24'; // Day 1
+
+        let selectedDate = '';
+
+        function getDateList() {
+            const dates = [];
+            const start = new Date(START_DATE);
+            for (let i = 0; i < TOTAL_DAYS; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+            }
+            return dates;
+        }
+
+        const DATE_LIST = getDateList();
 
         function getData() {
             const raw = localStorage.getItem('guai_guai_exp_2026');
-            if (raw) return JSON.parse(raw);
-            // 初始状态：第一天（昨天）已打卡
+            if (raw) {
+                const data = JSON.parse(raw);
+                // 确保第一天已打卡
+                if (!data.checkedDates[START_DATE]) {
+                    data.checkedDates[START_DATE] = true;
+                }
+                return data;
+            }
+            // 初始：第一天已打卡
             return { 
                 checkedDates: { [START_DATE]: true }, 
                 notes: {},
@@ -218,50 +265,73 @@
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
 
-        function getDayLabel(index) {
-            return `Day ${index + 1}`;
+        function getDayIndex(dateStr) {
+            return DATE_LIST.indexOf(dateStr);
+        }
+
+        function formatDateCN(dateStr) {
+            const d = new Date(dateStr);
+            return `${d.getMonth()+1}月${d.getDate()}日`;
+        }
+
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            render();
         }
 
         function render() {
             const data = getData();
             const today = getTodayStr();
-            const checkedList = Object.keys(data.checkedDates).sort();
+            const checkedList = Object.keys(data.checkedDates).filter(d => data.checkedDates[d]).sort();
             const count = checkedList.length;
             const percent = Math.round((count / TOTAL_DAYS) * 100);
             const earned = count * DAILY_BASE;
 
-            // 更新数字
+            // 默认选中今天（如果还没选过）
+            if (!selectedDate) {
+                selectedDate = today;
+            }
+
+            // 更新统计
             document.getElementById('dayCount').textContent = count;
             document.getElementById('moneyCount').textContent = `¥${earned}`;
             document.getElementById('remainCount').textContent = Math.max(0, TOTAL_DAYS - count);
             document.getElementById('percentText').textContent = `${percent}%`;
             document.getElementById('progressBar').style.width = `${percent}%`;
 
-            // 按钮状态
+            // 更新选中日期显示
+            const dayIdx = getDayIndex(selectedDate);
+            const dayLabel = dayIdx >= 0 ? `Day ${dayIdx + 1}（${formatDateCN(selectedDate)}）` : selectedDate;
+            document.getElementById('selectedDateDisplay').textContent = dayLabel;
+            document.getElementById('noteLabel').textContent = selectedDate === today ? '今天' : formatDateCN(selectedDate);
+
+            // 按钮状态（根据选中的日期）
             const btn = document.getElementById('checkInBtn');
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
             const btnSub = document.getElementById('btnSub');
 
-            if (data.checkedDates[today]) {
+            if (data.checkedDates[selectedDate]) {
                 btn.classList.remove('from-amber-500', 'to-orange-500');
                 btn.classList.add('from-emerald-400', 'to-teal-500', 'cursor-default');
-                btnText.textContent = '今日已打卡 ✓';
+                const dIdx = getDayIndex(selectedDate);
+                btnText.textContent = dIdx >= 0 ? `Day ${dIdx+1} 已打卡 ✓` : '已打卡 ✓';
                 btnIcon.textContent = '🌙';
-                btnSub.textContent = '明天见，好好休息！';
+                btnSub.textContent = '这一天已经完成啦！';
                 btn.disabled = true;
             } else {
                 btn.classList.add('from-amber-500', 'to-orange-500');
                 btn.classList.remove('from-emerald-400', 'to-teal-500', 'cursor-default');
-                btnText.textContent = '下班打卡';
+                const dIdx = getDayIndex(selectedDate);
+                btnText.textContent = dIdx >= 0 ? `打卡 Day ${dIdx+1}` : '打卡';
                 btnIcon.textContent = '🌅';
-                btnSub.textContent = count === 1 ? '昨天已完成，今天是第二天！' : '今天也要加油鸭！';
+                btnSub.textContent = selectedDate === today ? '今天也要加油鸭！' : '补打卡这一天';
                 btn.disabled = false;
             }
 
-            // 今日记录回显
-            if (data.notes[today]) {
-                document.getElementById('todayNote').value = data.notes[today];
+            // 笔记回显
+            if (data.notes[selectedDate]) {
+                document.getElementById('todayNote').value = data.notes[selectedDate];
             } else {
                 document.getElementById('todayNote').value = '';
             }
@@ -270,11 +340,20 @@
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
             for (let i = 0; i < TOTAL_DAYS; i++) {
-                const isChecked = i < count;
+                const dateStr = DATE_LIST[i];
+                const isChecked = data.checkedDates[dateStr];
+                const isSelected = dateStr === selectedDate;
+                const isFuture = new Date(dateStr) > new Date(today);
+
                 const cell = document.createElement('div');
-                cell.className = `day-cell rounded-xl h-10 flex items-center justify-center text-xs font-bold cursor-default ${isChecked ? 'active' : 'bg-white/50 text-amber-300'}`;
+                cell.className = `day-cell rounded-xl h-11 flex items-center justify-center text-sm font-bold ${isChecked ? 'active' : 'bg-white/50 text-amber-300'} ${isSelected ? 'selected' : ''} ${isFuture ? 'locked' : ''}`;
                 cell.textContent = i + 1;
-                if (isChecked) cell.title = getDayLabel(i) + ' 已打卡';
+                cell.title = `${formatDateCN(dateStr)} ${isChecked ? '已打卡' : '未打卡'}`;
+
+                if (!isFuture) {
+                    cell.onclick = () => selectDate(dateStr);
+                }
+
                 grid.appendChild(cell);
             }
 
@@ -285,8 +364,10 @@
             } else {
                 historyList.innerHTML = checkedList.slice().reverse().map(date => {
                     const note = data.notes[date] || '';
+                    const dIdx = getDayIndex(date);
+                    const dayTag = dIdx >= 0 ? `Day ${dIdx+1}` : date;
                     return `<div class="bg-white/60 rounded-xl p-3 border border-amber-100">
-                        <div class="text-xs text-amber-500 font-bold mb-1">${date}</div>
+                        <div class="text-xs text-amber-500 font-bold mb-1">${dayTag} · ${formatDateCN(date)}</div>
                         <div class="text-amber-800">${note ? note : '<span class="text-amber-300">今天没有写记录</span>'}</div>
                     </div>`;
                 }).join('');
@@ -300,19 +381,14 @@
 
         function doCheckIn() {
             const data = getData();
-            const today = getTodayStr();
+            if (!selectedDate) return;
+            if (data.checkedDates[selectedDate]) return;
 
-            if (data.checkedDates[today]) return;
-
-            data.checkedDates[today] = true;
+            data.checkedDates[selectedDate] = true;
             saveData(data);
 
-            // 按钮动画
-            const btn = document.getElementById('checkInBtn');
-            btn.classList.add('btn-click-anim');
-            setTimeout(() => btn.classList.remove('btn-click-anim'), 300);
-
             // 飘钱动画
+            const btn = document.getElementById('checkInBtn');
             const rect = btn.getBoundingClientRect();
             const float = document.createElement('div');
             float.className = 'money-float';
@@ -322,32 +398,33 @@
             document.body.appendChild(float);
             setTimeout(() => float.remove(), 1000);
 
-            // 如果满30天
-            const count = Object.keys(data.checkedDates).length;
+            // 满30天
+            const count = Object.keys(data.checkedDates).filter(d => data.checkedDates[d]).length;
             if (count >= TOTAL_DAYS) {
                 createConfetti();
             }
 
+            showToast('打卡成功！');
             render();
         }
 
         function saveNote() {
             const data = getData();
-            const today = getTodayStr();
+            if (!selectedDate) return;
             const note = document.getElementById('todayNote').value.trim();
-            data.notes[today] = note;
+            data.notes[selectedDate] = note;
             saveData(data);
 
-            const btn = event.target;
-            const original = btn.textContent;
-            btn.textContent = '已保存 ✓';
-            btn.classList.add('bg-emerald-100', 'text-emerald-700');
-            setTimeout(() => {
-                btn.textContent = original;
-                btn.classList.remove('bg-emerald-100', 'text-emerald-700');
-            }, 1500);
-
+            showToast('记录已保存');
             render();
+        }
+
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
         }
 
         function createConfetti() {
@@ -381,9 +458,71 @@
             document.getElementById('celebrateModal').classList.remove('flex');
         }
 
+        function exportData() {
+            const data = getData();
+            const json = JSON.stringify(data);
+            // 尝试复制到剪贴板
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(json).then(() => {
+                    showToast('数据已复制到剪贴板！快去保存');
+                }).catch(() => {
+                    showExportFallback(json);
+                });
+            } else {
+                showExportFallback(json);
+            }
+        }
+
+        function showExportFallback(json) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl p-6 max-w-sm w-full modal-enter shadow-2xl">
+                    <h3 class="text-lg font-bold text-amber-800 mb-3">📤 导出数据</h3>
+                    <p class="text-xs text-amber-600 mb-3">长按下方代码，全选复制，保存到微信收藏或备忘录：</p>
+                    <textarea readonly rows="3" class="w-full bg-amber-50 rounded-xl p-3 text-xs text-amber-900 border border-amber-200 resize-none mb-3">${json}</textarea>
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm transition-colors">我知道了</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showImport() {
+            document.getElementById('importModal').classList.remove('hidden');
+            document.getElementById('importModal').classList.add('flex');
+        }
+
+        function closeImport() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('importModal').classList.remove('flex');
+            document.getElementById('importInput').value = '';
+        }
+
+        function doImport() {
+            const input = document.getElementById('importInput').value.trim();
+            if (!input) {
+                showToast('请输入数据');
+                return;
+            }
+            try {
+                const data = JSON.parse(input);
+                if (data.checkedDates && typeof data.checkedDates === 'object') {
+                    saveData(data);
+                    showToast('数据恢复成功！');
+                    closeImport();
+                    render();
+                } else {
+                    showToast('数据格式不对');
+                }
+            } catch (e) {
+                showToast('导入失败，请检查数据');
+            }
+        }
+
         function resetAll() {
             if (confirm('确定要重置吗？所有打卡记录和笔记都会清空，回到Day 1状态。')) {
                 localStorage.removeItem('guai_guai_exp_2026');
+                selectedDate = '';
                 location.reload();
             }
         }
