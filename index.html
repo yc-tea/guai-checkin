@@ -63,7 +63,6 @@
             0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
-        input:focus, textarea:focus { outline: none; }
         .toast {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.75); color: white; padding: 12px 24px;
@@ -76,6 +75,7 @@
             80% { opacity: 1; }
             100% { opacity: 0; }
         }
+        input:focus, textarea:focus { outline: none; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -104,7 +104,7 @@
                 </div>
                 <div class="w-px h-10 bg-amber-200"></div>
                 <div class="text-center flex-1">
-                    <div class="text-2xl font-black text-amber-600" id="remainCount">30</div>
+                    <div class="text-2xl font-black text-amber-600" id="remainCount">20</div>
                     <div class="text-xs text-amber-500/70 mt-1">剩余</div>
                 </div>
             </div>
@@ -137,10 +137,10 @@
         <!-- 日历 -->
         <div class="glass rounded-3xl p-5 shadow-lg shadow-amber-200/30 mb-4">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-amber-800 text-sm">📅 30天探索地图</h3>
+                <h3 class="font-bold text-amber-800 text-sm">📅 20天探索地图</h3>
                 <span class="text-xs text-amber-500">点击任意日期打卡</span>
             </div>
-            <div id="calendarGrid" class="grid grid-cols-6 gap-2.5">
+            <div id="calendarGrid" class="grid grid-cols-5 gap-2.5">
                 <!-- JS生成 -->
             </div>
         </div>
@@ -157,7 +157,7 @@
         <div class="glass rounded-2xl p-4 text-center mb-4">
             <div class="text-xs text-amber-600/80 mb-1">🎯 满月目标</div>
             <div class="text-lg font-black text-amber-800">底薪 ¥2000 + 探索奖金 ¥500</div>
-            <div class="text-xs text-amber-500/70 mt-1">30天后，带着成长来领工资 💰</div>
+            <div class="text-xs text-amber-500/70 mt-1">20天后，带着成长来领工资 💰</div>
         </div>
 
         <!-- 数据备份 -->
@@ -201,12 +201,12 @@
         </div>
     </div>
 
-    <!-- 满30天庆祝弹窗 -->
+    <!-- 满20天庆祝弹窗 -->
     <div id="celebrateModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center modal-enter shadow-2xl">
             <div class="text-6xl mb-4">🎉</div>
             <h2 class="text-2xl font-black text-amber-800 mb-2">实验完成！</h2>
-            <p class="text-amber-600 mb-4">乖乖，你完成了30天AI探索！<br>准备好领工资了吗？</p>
+            <p class="text-amber-600 mb-4">乖乖，你完成了20天AI探索！<br>准备好领工资了吗？</p>
             <div class="bg-amber-50 rounded-2xl p-4 mb-6">
                 <div class="text-3xl font-black text-amber-600">¥2500</div>
                 <div class="text-xs text-amber-500">底薪 ¥2000 + 探索奖金 ¥500</div>
@@ -218,7 +218,7 @@
     </div>
 
     <script>
-        const TOTAL_DAYS = 30;
+        const TOTAL_DAYS = 20;
         const BASE_SALARY = 2000;
         const DAILY_BASE = Math.floor(BASE_SALARY / TOTAL_DAYS);
         const START_DATE = '2026-06-24'; // Day 1
@@ -336,7 +336,7 @@
                 document.getElementById('todayNote').value = '';
             }
 
-            // 日历格子
+            // 日历格子（5列 x 4行）
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
             for (let i = 0; i < TOTAL_DAYS; i++) {
@@ -348,7 +348,7 @@
                 const cell = document.createElement('div');
                 cell.className = `day-cell rounded-xl h-11 flex items-center justify-center text-sm font-bold ${isChecked ? 'active' : 'bg-white/50 text-amber-300'} ${isSelected ? 'selected' : ''} ${isFuture ? 'locked' : ''}`;
                 cell.textContent = i + 1;
-                cell.title = `${formatDateCN(dateStr)} ${isChecked ? '已打卡' : '未打卡'}`;
+                if (isChecked) cell.title = `Day ${i+1} · ${formatDateCN(dateStr)} 已打卡`;
 
                 if (!isFuture) {
                     cell.onclick = () => selectDate(dateStr);
@@ -373,7 +373,7 @@
                 }).join('');
             }
 
-            // 满30天检测
+            // 满20天检测
             if (count >= TOTAL_DAYS && !data.celebrated) {
                 setTimeout(() => showCelebrate(), 500);
             }
@@ -398,7 +398,7 @@
             document.body.appendChild(float);
             setTimeout(() => float.remove(), 1000);
 
-            // 满30天
+            // 如果满20天
             const count = Object.keys(data.checkedDates).filter(d => data.checkedDates[d]).length;
             if (count >= TOTAL_DAYS) {
                 createConfetti();
@@ -461,7 +461,6 @@
         function exportData() {
             const data = getData();
             const json = JSON.stringify(data);
-            // 尝试复制到剪贴板
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(json).then(() => {
                     showToast('数据已复制到剪贴板！快去保存');
